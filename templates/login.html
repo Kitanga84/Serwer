@@ -1,32 +1,19 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8" />
-    <title>Login</title>
-</head>
-<body>
-    <h1>Login</h1>
+{% extends "base.html" %}
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+{% block title %}Login{% endblock %}
 
-    <form method="POST" action="{{ url_for('login') }}">
-        <label>Benutzername:</label>
-        <input type="text" name="username" required />
-        <br/>
-        <label>Passwort:</label>
-        <input type="password" name="password" required />
-        <br/>
-        <button type="submit">Einloggen</button>
-    </form>
-
-    <p>Kein Konto? <a href="{{ url_for('register') }}">Registrieren</a></p>
-</body>
-</html>
+{% block content %}
+<h1>Login</h1>
+<form method="POST">
+  <div class="mb-3">
+    <label for="username" class="form-label">Benutzername</label>
+    <input type="text" class="form-control" name="username" id="username" required />
+  </div>
+  <div class="mb-3">
+    <label for="password" class="form-label">Passwort</label>
+    <input type="password" class="form-control" name="password" id="password" required />
+  </div>
+  <button type="submit" class="btn btn-primary">Einloggen</button>
+</form>
+<p class="mt-3">Noch keinen Account? <a href="{{ url_for('register') }}">Registrieren</a></p>
+{% endblock %}
