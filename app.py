@@ -132,3 +132,32 @@ def download_shared_file(filename):
 
 if __name__ == "__main__":
     app.run(debug=True)
+    @app.route("/delete/<location>/<filename>", methods=["POST"])
+def delete_file(location, filename):
+    if "username" not in session:
+        flash("❌ Nicht eingeloggt.")
+        return redirect(url_for("login"))
+
+    username = session["username"]
+
+    if location == "private":
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], username, filename)
+    elif location == "shared":
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], "shared", filename)
+    else:
+        flash("❌ Ungültiger Speicherort.")
+        return redirect(url_for("index"))
+
+    if not os.path.exists(file_path):
+        flash("❌ Datei nicht gefunden.")
+        return redirect(url_for("index"))
+
+    # Użytkownik może usuwać tylko własne prywatne pliki lub dowolne wspólne
+    if location == "private" and username not in file_path:
+        flash("❌ Keine Berechtigung zum Löschen dieser Datei.")
+        return redirect(url_for("index"))
+
+    os.remove(file_path)
+    flash(f"🗑️ Datei '{filename}' wurde gelöscht.")
+    return redirect(url_for("index"))
+
