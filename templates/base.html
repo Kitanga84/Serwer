@@ -8,12 +8,13 @@
 <body class="container mt-4">
 
   <nav class="mb-4 d-flex align-items-center">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">🏠 Startseite</a>
-    {% if session.get('username') %}
-      <span class="ms-3">👤 {{ session['username'] }}</span>
-      <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm ms-2">🚪 Abmelden</a>
-    {% endif %}
-  </nav>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-primary">🏠 Startseite</a>
+  {% if session.get('username') %}
+    <span class="ms-3">👤 {{ session['username'] }}</span>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm ms-2">🚪 Abmelden</a>
+  {% endif %}
+</nav>
+
 
   {% with messages = get_flashed_messages() %}
     {% if messages %}
