@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><title>Dateien</title></head>
+<body>
+  <h1>📂 Hallo, {{ username }}</h1>
+  <p><a href="{{ url_for('logout') }}">🚪 Abmelden</a></p>
+  <h2>Deine Dateien:</h2>
+  <ul>
+    {% for file in files %}
+      <li>{{ file }}</li>
+    {% else %}
+      <li>Keine Dateien vorhanden.</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
