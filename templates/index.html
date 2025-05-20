@@ -1,31 +1,40 @@
-{% extends 'base.html' %}
-{% block title %}Dateien{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dateien von {{ username }}</title>
+</head>
+<body>
+    <h1>Hallo, {{ username }}!</h1>
 
-<h2>📂 Hallo, {{ username }}</h2>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
 
-<!-- Formularz przesyłania pliku -->
-<form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="mb-4">
-  <div class="mb-3">
-    <label class="form-label">📤 Datei auswählen:</label>
-    <input type="file" name="file" class="form-control" required>
-  </div>
-  <button type="submit" class="btn btn-primary">Hochladen</button>
-</form>
-
-<!-- Lista przesłanych plików -->
-<h4>🗂️ Deine Dateien:</h4>
-{% if files %}
-  <ul class="list-group">
+    <h2>Deine Dateien:</h2>
+    <ul>
     {% for file in files %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        {{ file }}
-        <a href="{{ url_for('download_file', username=username, filename=file) }}" class="btn btn-sm btn-outline-success">📥 Download</a>
-      </li>
+        <li>
+            {{ file }} -
+            <a href="{{ url_for('download_file', username=username, filename=file) }}">Download</a>
+        </li>
+    {% else %}
+        <li>Keine Dateien gefunden.</li>
     {% endfor %}
-  </ul>
-{% else %}
-  <p>Keine Dateien vorhanden.</p>
-{% endif %}
+    </ul>
 
-{% endblock %}
+    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+        <label>Datei hochladen:</label>
+        <input type="file" name="file" />
+        <button type="submit">Hochladen</button>
+    </form>
+
+    <p><a href="{{ url_for('logout') }}">Abmelden</a></p>
+</body>
+</html>
