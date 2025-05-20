@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import os, json
 from werkzeug.utils import secure_filename
 
@@ -60,43 +60,29 @@ def logout():
     flash("👋 Abgemeldet.")
     return redirect(url_for("login"))
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
     if "username" not in session:
         return redirect(url_for("login"))
     username = session["username"]
     user_folder = ensure_user_folder(username)
     files = os.listdir(user_folder)
+
+    if request.method == "POST":
+        if "file" not in request.files:
+            flash("❌ Keine Datei ausgewählt.")
+            return redirect(url_for("index"))
+        file = request.files["file"]
+        if file.filename == "":
+            flash("❌ Keine Datei ausgewählt.")
+            return redirect(url_for("index"))
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(user_folder, filename)
+        file.save(filepath)
+        flash(f"✅ Datei '{filename}' wurde hochgeladen.")
+        return redirect(url_for("index"))
+
     return render_template("index.html", username=username, files=files)
-
-@app.route("/upload", methods=["POST"])
-def upload_file():
-    if "username" not in session:
-        return redirect(url_for("login"))
-
-    if "file" not in request.files:
-        flash("❌ Keine Datei ausgewählt.")
-        return redirect(url_for("index"))
-
-    file = request.files["file"]
-    if file.filename == "":
-        flash("❌ Keine Datei ausgewählt.")
-        return redirect(url_for("index"))
-
-    username = session["username"]
-    filename = secure_filename(file.filename)
-    user_folder = ensure_user_folder(username)
-    filepath = os.path.join(user_folder, filename)
-    file.save(filepath)
-
-    flash(f"✅ Datei '{filename}' wurde hochgeladen.")
-    return redirect(url_for("index"))
-
-@app.route('/download/<username>/<filename>')
-def download_file(username, filename):
-    user_folder = os.path.join(app.config["UPLOAD_FOLDER"], username)
-    return send_from_directory(user_folder, filename, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
-
