@@ -1,20 +1,32 @@
 <!DOCTYPE html>
 <html lang="de">
-<head><meta charset="UTF-8"><title>Login</title></head>
+<head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+</head>
 <body>
-  <h1>🔐 Login</h1>
-  <form method="POST">
-    <label>Benutzername:</label><br>
-    <input type="text" name="username" required><br><br>
-    <label>Passwort:</label><br>
-    <input type="password" name="password" required><br><br>
-    <input type="submit" value="Einloggen">
-  </form>
-  <p><a href="{{ url_for('register') }}">Noch kein Konto? ➤ Registrieren</a></p>
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul>{% for msg in messages %}<li style="color:red;">{{ msg }}</li>{% endfor %}</ul>
-    {% endif %}
-  {% endwith %}
+    <h1>Login</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+        <label>Benutzername:</label>
+        <input type="text" name="username" required />
+        <br/>
+        <label>Passwort:</label>
+        <input type="password" name="password" required />
+        <br/>
+        <button type="submit">Einloggen</button>
+    </form>
+
+    <p>Kein Konto? <a href="{{ url_for('register') }}">Registrieren</a></p>
 </body>
 </html>
