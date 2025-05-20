@@ -44,24 +44,24 @@ def upload_file():
     if "username" not in session:
         return redirect(url_for("login"))
 
-    username = session["username"]
     if "file" not in request.files:
         flash("❌ Keine Datei ausgewählt.")
         return redirect(url_for("index"))
-@app.route("/download/<username>/<filename>")
-def download_file(username, filename):
-    return send_from_directory(os.path.join(app.config["UPLOAD_FOLDER"], username), filename, as_attachment=True)
 
     file = request.files["file"]
     if file.filename == "":
         flash("❌ Keine Datei ausgewählt.")
         return redirect(url_for("index"))
 
+    username = session["username"]
     filename = secure_filename(file.filename)
-    user_folder = os.path.join(app.config["UPLOAD_FOLDER"], username)
-    file.save(os.path.join(user_folder, filename))
+    user_folder = ensure_user_folder(username)
+    filepath = os.path.join(user_folder, filename)
+    file.save(filepath)
+
     flash(f"✅ Datei '{filename}' wurde hochgeladen.")
     return redirect(url_for("index"))
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
