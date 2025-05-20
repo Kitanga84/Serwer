@@ -16,7 +16,9 @@
 <h2>Deine Dateien:</h2>
 <ul class="list-group">
   {% for file in files %}
-    <li class="list-group-item">{{ file }}</li>
+    <li class="list-group-item">
+      <a href="{{ url_for('download_file', username=username, filename=file) }}">{{ file }}</a>
+    </li>
   {% else %}
     <li class="list-group-item">Keine Dateien gefunden.</li>
   {% endfor %}
