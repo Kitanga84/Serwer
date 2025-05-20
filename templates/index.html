@@ -5,22 +5,40 @@
 {% block content %}
 <h1>Willkommen, {{ username }}!</h1>
 
-<form method="POST" enctype="multipart/form-data" class="mb-3">
+<form method="POST" enctype="multipart/form-data" class="mb-4">
   <div class="mb-3">
     <label for="file" class="form-label">Datei hochladen</label>
-    <input class="form-control" type="file" name="file" id="file" />
+    <input class="form-control" type="file" name="file" id="file" required />
+  </div>
+  <div class="mb-3">
+    <label for="target" class="form-label">Zielordner</label>
+    <select class="form-select" name="target" id="target">
+      <option value="private">🔒 Privater Ordner</option>
+      <option value="shared">👥 Gemeinsamer Ordner</option>
+    </select>
   </div>
   <button type="submit" class="btn btn-primary">Hochladen</button>
 </form>
 
-<h2>Deine Dateien:</h2>
-<ul class="list-group">
-  {% for file in files %}
+<h2>🔒 Deine privaten Dateien</h2>
+<ul class="list-group mb-4">
+  {% for file in private_files %}
     <li class="list-group-item">
       <a href="{{ url_for('download_file', username=username, filename=file) }}">{{ file }}</a>
     </li>
   {% else %}
     <li class="list-group-item">Keine Dateien gefunden.</li>
+  {% endfor %}
+</ul>
+
+<h2>👥 Gemeinsame Dateien</h2>
+<ul class="list-group">
+  {% for file in shared_files %}
+    <li class="list-group-item">
+      <a href="{{ url_for('download_shared_file', filename=file) }}">{{ file }}</a>
+    </li>
+  {% else %}
+    <li class="list-group-item">Noch keine gemeinsamen Dateien.</li>
   {% endfor %}
 </ul>
 {% endblock %}
