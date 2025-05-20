@@ -48,6 +48,9 @@ def upload_file():
     if "file" not in request.files:
         flash("❌ Keine Datei ausgewählt.")
         return redirect(url_for("index"))
+@app.route("/download/<username>/<filename>")
+def download_file(username, filename):
+    return send_from_directory(os.path.join(app.config["UPLOAD_FOLDER"], username), filename, as_attachment=True)
 
     file = request.files["file"]
     if file.filename == "":
