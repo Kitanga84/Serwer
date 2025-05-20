@@ -1,19 +1,18 @@
 {% extends "base.html" %}
-
-{% block title %}Registrierung{% endblock %}
+{% block title %}Registrieren{% endblock %}
 
 {% block content %}
-<h1>Registrierung</h1>
+<h2>📝 Registrierung</h2>
 <form method="POST">
   <div class="mb-3">
-    <label for="username" class="form-label">Benutzername</label>
-    <input type="text" class="form-control" name="username" id="username" required />
+    <label class="form-label">Benutzername</label>
+    <input type="text" name="username" class="form-control" required>
   </div>
   <div class="mb-3">
-    <label for="password" class="form-label">Passwort</label>
-    <input type="password" class="form-control" name="password" id="password" required />
+    <label class="form-label">Passwort</label>
+    <input type="password" name="password" class="form-control" required>
   </div>
-  <button type="submit" class="btn btn-primary">Registrieren</button>
+  <button type="submit" class="btn btn-success">Registrieren</button>
+  <a href="{{ url_for('login') }}" class="btn btn-link">Zurück zum Login</a>
 </form>
-<p class="mt-3">Schon registriert? <a href="{{ url_for('login') }}">Hier einloggen</a></p>
 {% endblock %}
