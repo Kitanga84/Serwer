@@ -39,6 +39,26 @@ def register():
         flash("✅ Registrierung erfolgreich. Bitte einloggen.")
         return redirect(url_for("login"))
     return render_template("register.html")
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    username = session["username"]
+    if "file" not in request.files:
+        flash("❌ Keine Datei ausgewählt.")
+        return redirect(url_for("index"))
+
+    file = request.files["file"]
+    if file.filename == "":
+        flash("❌ Keine Datei ausgewählt.")
+        return redirect(url_for("index"))
+
+    filename = secure_filename(file.filename)
+    user_folder = os.path.join(app.config["UPLOAD_FOLDER"], username)
+    file.save(os.path.join(user_folder, filename))
+    flash(f"✅ Datei '{filename}' wurde hochgeladen.")
+    return redirect(url_for("index"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
