@@ -31,26 +31,17 @@ def init_db():
     conn.close()
 
 def create_default_admins():
-    with sqlite3.connect(DATABASE) as conn:
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password TEXT NOT NULL,
-                        is_admin INTEGER NOT NULL)''')
-        admins = [("admin1", "admin1pass"), ("admin2", "admin2pass")]
-        for username, password in admins:
-            hashed_pw = generate_password_hash(password)
-            try:
-                c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_pw, 1))
-                print(f"Utworzono domyślnego administratora: {username}")
-            except sqlite3.IntegrityError:
-                pass
-        conn.commit()
-
-# 🚀 To działa także na Renderze, bo wykonuje się przy starcie
-init_db()
-create_default_admins()
+    conn = get_db_connection()
+    admins = [("admin1", "admin1pass"), ("admin2", "admin2pass")]
+    for username, password in admins:
+        hashed_pw = generate_password_hash(password)
+        try:
+            conn.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)",
+                         (username, hashed_pw, 1))
+        except sqlite3.IntegrityError:
+            pass  # już istnieje
+    conn.commit()
+    conn.close()
 
 @app.route('/')
 def index():
@@ -130,4 +121,6 @@ def download_history():
     return render_template('history.html', history=history)
 
 if __name__ == '__main__':
+    init_db()
+    create_default_admins()
     app.run(debug=True)
