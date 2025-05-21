@@ -6,5 +6,9 @@
   "admin2": {
     "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
     "is_admin": true
+  },
+  "user1": {
+    "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "is_admin": false
   }
 }
