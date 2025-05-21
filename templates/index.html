@@ -2,47 +2,47 @@
 {% block title %}Dateien{% endblock %}
 
 {% block content %}
-<h2>📂 Deine Dateien</h2>
-
-<form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data" class="mb-4">
-  <div class="input-group">
-    <input type="file" name="file" class="form-control" required>
-    <button class="btn btn-success" type="submit">⬆️ Hochladen</button>
-  </div>
-</form>
-
-<h4>🔒 Private Dateien</h4>
+<h2>📁 Eigene Dateien</h2>
 <ul class="list-group mb-4">
-  {% for file in files %}
+  {% for file in user_files %}
     <li class="list-group-item d-flex justify-content-between align-items-center">
       {{ file }}
-      <div>
-        <a href="{{ url_for('download_file', username=username, filename=file) }}" class="btn btn-sm btn-outline-primary">⬇️ Download</a>
-        <form action="{{ url_for('delete_file', location='private', filename=file) }}" method="POST" class="d-inline">
-          <button class="btn btn-sm btn-outline-danger" type="submit">🗑️ Löschen</button>
-        </form>
-      </div>
+      <span>
+        <a href="{{ url_for('download_file', username=username, filename=file) }}" class="btn btn-sm btn-outline-success">⬇️</a>
+        <a href="{{ url_for('delete_file', username=username, filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️</a>
+      </span>
     </li>
   {% else %}
-    <li class="list-group-item">Keine Dateien gefunden.</li>
+    <li class="list-group-item">Keine Dateien</li>
   {% endfor %}
 </ul>
 
-<h4>🌍 Gemeinsamer Ordner</h4>
-<ul class="list-group">
+<h2>🌍 Gemeinsamer Ordner</h2>
+<ul class="list-group mb-4">
   {% for file in shared_files %}
     <li class="list-group-item d-flex justify-content-between align-items-center">
       {{ file }}
-      <div>
-        <a href="{{ url_for('download_shared_file', filename=file) }}" class="btn btn-sm btn-outline-primary">⬇️ Download</a>
-        <form action="{{ url_for('delete_file', location='shared', filename=file) }}" method="POST" class="d-inline">
-          <button class="btn btn-sm btn-outline-danger" type="submit">🗑️ Löschen</button>
-        </form>
-      </div>
+      <a href="{{ url_for('download_shared_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️</a>
     </li>
   {% else %}
-    <li class="list-group-item">Keine gemeinsamen Dateien gefunden.</li>
+    <li class="list-group-item">Keine Dateien</li>
   {% endfor %}
 </ul>
-{% endblock %}
 
+<form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data" class="mb-5">
+  <div class="row g-2">
+    <div class="col-md-6">
+      <input type="file" name="file" class="form-control" required>
+    </div>
+    <div class="col-md-3">
+      <select name="location" class="form-select">
+        <option value="private">🔒 Privat</option>
+        <option value="shared">🌍 Gemeinsam</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-success w-100" type="submit">⬆️ Hochladen</button>
+    </div>
+  </div>
+</form>
+{% endblock %}
