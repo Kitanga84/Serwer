@@ -31,23 +31,31 @@ def init_db():
     conn.close()
 
 def create_default_admins():
-    conn = get_db_connection()
-    admins = [("admin1", "admin1pass"), ("admin2", "admin2pass")]
-    for username, password in admins:
-        hashed_pw = generate_password_hash(password)
-        try:
-            conn.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)",
-                         (username, hashed_pw, 1))
-        except sqlite3.IntegrityError:
-            pass  # już istnieje
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DATABASE) as conn:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        password TEXT NOT NULL,
+                        is_admin INTEGER NOT NULL)''')
+        admins = [("admin1", "admin1pass"), ("admin2", "admin2pass")]
+        for username, password in admins:
+            hashed_pw = generate_password_hash(password)
+            try:
+                c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_pw, 1))
+                os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
+                print(f"Utworzono domyślnego administratora: {username}")
+            except sqlite3.IntegrityError:
+                pass
+        conn.commit()
 
 @app.route('/')
 def index():
     if 'username' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', username=session['username'], is_admin=session.get('is_admin', 0))
+    user_folder = os.path.join(UPLOAD_FOLDER, session['username'])
+    files = os.listdir(user_folder) if os.path.exists(user_folder) else []
+    return render_template('index.html', username=session['username'], is_admin=session.get('is_admin', 0), files=files)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -94,6 +102,25 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    file = request.files['file']
+    if file.filename == '':
+        flash('Nie wybrano pliku.')
+        return redirect(url_for('index'))
+
+    user_folder = os.path.join(UPLOAD_FOLDER, session['username'])
+    os.makedirs(user_folder, exist_ok=True)
+
+    filepath = os.path.join(user_folder, file.filename)
+    file.save(filepath)
+
+    flash('Plik przesłany pomyślnie.')
+    return redirect(url_for('index'))
 
 @app.route('/download/<folder>/<filename>')
 def download_file(folder, filename):
