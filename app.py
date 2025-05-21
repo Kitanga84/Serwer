@@ -1,7 +1,7 @@
 import os
 import json
+import hashlib
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
@@ -33,8 +33,9 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login'))
     username = session['username']
-    private_files = os.listdir(os.path.join(UPLOAD_FOLDER, username)) if os.path.exists(os.path.join(UPLOAD_FOLDER, username)) else []
+    private_path = os.path.join(UPLOAD_FOLDER, username)
     shared_files = os.listdir(SHARED_FOLDER) if os.path.exists(SHARED_FOLDER) else []
+    private_files = os.listdir(private_path) if os.path.exists(private_path) else []
     return render_template('index.html', username=username, private_files=private_files, shared_files=shared_files)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -46,7 +47,11 @@ def register():
         if username in users:
             flash('Benutzername existiert bereits.', 'danger')
             return redirect(url_for('register'))
-        users[username] = generate_password_hash(password)
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        users[username] = {
+            "password": password_hash,
+            "is_admin": username in ADMINS
+        }
         save_data(USER_FILE, users)
         os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
         flash('Registrierung erfolgreich. Bitte anmelden.', 'success')
@@ -59,11 +64,17 @@ def login():
         username = request.form['username']
         password = request.form['password']
         users = load_data(USER_FILE)
-        if username in users and check_password_hash(users[username], password):
-            session['username'] = username
-            flash('Anmeldung erfolgreich.', 'success')
-            return redirect(url_for('index'))
-        flash('Ungültiger Benutzername oder Passwort.', 'danger')
+        if username in users:
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            if users[username]['password'] == password_hash:
+                session['username'] = username
+                session['is_admin'] = users[username].get('is_admin', False)
+                flash('Anmeldung erfolgreich.', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Falsches Passwort.', 'danger')
+        else:
+            flash('Benutzername existiert nicht.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -111,6 +122,9 @@ def delete_file(folder, filename):
         return redirect(url_for('login'))
     username = session['username']
     path = os.path.join(UPLOAD_FOLDER, folder, filename)
+    if not os.path.exists(path):
+        flash('Datei nicht gefunden.', 'danger')
+        return redirect(url_for('index'))
     if folder == 'shared':
         if username in ADMINS:
             os.remove(path)
@@ -170,8 +184,4 @@ def delete_user(username_to_delete):
     return redirect(url_for('admin_users'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
-
-if __name__ == "__main__":
     app.run(debug=True)
