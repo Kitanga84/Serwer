@@ -3,22 +3,10 @@
 
 {% block content %}
 <div class="container mt-4">
-
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Willkommen, {{ username }}!</h2>
     <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Abmelden</a>
   </div>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
 
   <!-- Datei Hochladen -->
   <div class="card mb-4">
@@ -68,7 +56,7 @@
         {{ file }}
         <span>
           <a href="{{ url_for('download', folder='shared', filename=file) }}" class="btn btn-sm btn-primary">Herunterladen</a>
-          {% if username in ['admin1', 'admin2'] %}
+          {% if username in shared_owners and shared_owners[file] == username %}
           <a href="{{ url_for('delete_file', folder='shared', filename=file) }}" class="btn btn-sm btn-danger ms-2" onclick="return confirm('Datei wirklich löschen?')">Löschen</a>
           {% endif %}
         </span>
@@ -79,13 +67,11 @@
     <p>Keine Dateien im gemeinsamen Ordner.</p>
   {% endif %}
 
-  <!-- Link zur Registrierung nur für Admins -->
   {% if username in ['admin1', 'admin2'] %}
     <a href="{{ url_for('register') }}" class="btn btn-outline-primary mt-3">Neuen Benutzer registrieren</a>
+    <a href="{{ url_for('user_list') }}" class="btn btn-outline-secondary mt-3">Benutzerliste</a>
   {% endif %}
 
-  <!-- Link zur Download-Historie -->
   <a href="{{ url_for('download_history') }}" class="btn btn-link mt-3">Download-Historie ansehen</a>
-
 </div>
 {% endblock %}
