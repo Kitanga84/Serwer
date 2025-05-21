@@ -1,27 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Download-Historie{% endblock %}
+
 {% block content %}
-<h2>Download-Historie</h2>
-{% if downloads %}
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Dateiname</th>
-      <th>Benutzer</th>
-      <th>Zeitpunkt</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for d in downloads %}
-    <tr>
-      <td>{{ d.filename }}</td>
-      <td>{{ d.username }}</td>
-      <td>{{ d.timestamp }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p>Keine Downloads gefunden.</p>
-{% endif %}
+<div class="container mt-4">
+  <h2>Download-Historie</h2>
+
+  {% if history %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Benutzer</th>
+        <th>Datei</th>
+        <th>Ordner</th>
+        <th>Zeitpunkt</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in history %}
+      <tr>
+        <td>{{ entry.user }}</td>
+        <td>{{ entry.file }}</td>
+        <td>{{ entry.from }}</td>
+        <td>{{ entry.time }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Keine Download-Einträge vorhanden.</p>
+  {% endif %}
+
+  <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Zurück</a>
+</div>
 {% endblock %}
