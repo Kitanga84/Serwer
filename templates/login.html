@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Login{% endblock %}
-
 {% block content %}
 <h2>🔐 Login</h2>
 <form method="POST">
@@ -12,7 +11,6 @@
     <label class="form-label">Passwort</label>
     <input type="password" name="password" class="form-control" required>
   </div>
-  <button type="submit" class="btn btn-primary">Einloggen</button>
-  <a href="{{ url_for('register') }}" class="btn btn-link">Noch kein Konto?</a>
+  <button class="btn btn-primary">Einloggen</button>
 </form>
 {% endblock %}
