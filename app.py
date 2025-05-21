@@ -7,7 +7,7 @@ from datetime import datetime
 from functools import wraps
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "geheim_schlüssel"
+app.secret_key = "geheim_schlüssel"
 
 UPLOAD_FOLDER = "uploads"
 SHARED_FOLDER = os.path.join(UPLOAD_FOLDER, "shared")
@@ -18,16 +18,17 @@ USER_FILE = "users.json"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHARED_FOLDER, exist_ok=True)
 
+
 # --- HILFSFUNKTIONEN --- #
 
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if "username" not in session:
-            flash("Bitte erst einloggen.", "warning")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return wrapper
+
 
 def load_users():
     if os.path.exists(USER_FILE):
@@ -35,9 +36,11 @@ def load_users():
             return json.load(f)
     return {}
 
+
 def save_users(users):
     with open(USER_FILE, "w") as f:
         json.dump(users, f)
+
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -45,9 +48,24 @@ def load_history():
             return json.load(f)
     return []
 
+
 def save_history(history):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f)
+
+
+# --- ADMINI AUTOMATYCZNIE DODANI PRZY STARTU --- #
+users = load_users()
+changed = False
+if "admin1" not in users:
+    users["admin1"] = generate_password_hash("adminpass1")
+    changed = True
+if "admin2" not in users:
+    users["admin2"] = generate_password_hash("adminpass2")
+    changed = True
+if changed:
+    save_users(users)
+
 
 # --- ROUTEN --- #
 
@@ -66,6 +84,7 @@ def index():
                            user_files=user_files,
                            shared_files=shared_files)
 
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -82,11 +101,13 @@ def login():
 
     return render_template("login.html")
 
+
 @app.route("/logout")
 def logout():
     session.pop("username", None)
     flash("Erfolgreich abgemeldet.", "info")
     return redirect(url_for("login"))
+
 
 @app.route("/register", methods=["GET", "POST"])
 @login_required
@@ -115,6 +136,7 @@ def register():
 
     return render_template("register.html")
 
+
 @app.route("/upload", methods=["POST"])
 @login_required
 def upload():
@@ -137,6 +159,7 @@ def upload():
     file.save(os.path.join(path, filename))
     flash("Datei erfolgreich hochgeladen.", "success")
     return redirect(url_for("index"))
+
 
 @app.route("/download/<path:folder>/<filename>")
 @login_required
@@ -162,6 +185,7 @@ def download(folder, filename):
 
     return send_from_directory(path, filename, as_attachment=True)
 
+
 @app.route("/delete/<path:folder>/<filename>")
 @login_required
 def delete_file(folder, filename):
@@ -182,11 +206,13 @@ def delete_file(folder, filename):
 
     return redirect(url_for("index"))
 
+
 @app.route("/download_history")
 @login_required
 def download_history():
     history = load_history()
     return render_template("history.html", history=history)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
