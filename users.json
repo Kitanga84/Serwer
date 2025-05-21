@@ -1,6 +1,10 @@
 {
   "admin1": {
-    "password": "9b74c9897bac770ffc029102a200c5de", 
+    "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "is_admin": true
+  },
+  "admin2": {
+    "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
     "is_admin": true
   }
 }
