@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Download-Historie{% endblock %}
+
+{% block content %}
+<h2>📜 Download-Historie</h2>
+<ul class="list-group">
+  {% for entry in history %}
+    <li class="list-group-item">{{ entry }}</li>
+  {% else %}
+    <li class="list-group-item">Keine Einträge gefunden.</li>
+  {% endfor %}
+</ul>
+<a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">🔙 Zurück</a>
+{% endblock %}
