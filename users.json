@@ -1,1 +1,6 @@
-{}
+{
+  "admin1": {
+    "password": "9b74c9897bac770ffc029102a200c5de", 
+    "is_admin": true
+  }
+}
