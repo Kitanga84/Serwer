@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 import os
 import sqlite3
 from datetime import datetime
@@ -20,16 +20,6 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
-    conn = get_db_connection()
-    conn.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password TEXT NOT NULL,
-                        is_admin INTEGER NOT NULL)''')
-    conn.commit()
-    conn.close()
-
 @app.route('/')
 def index():
     if 'username' not in session:
@@ -42,13 +32,16 @@ def register():
         return redirect(url_for('index'))
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'])
+        password = request.form['password']
         is_admin = 1 if 'is_admin' in request.form else 0
+
+        from werkzeug.security import generate_password_hash
+        password_hash = generate_password_hash(password)
 
         conn = get_db_connection()
         try:
             conn.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)",
-                         (username, password, is_admin))
+                         (username, password_hash, is_admin))
             conn.commit()
             os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
             flash('Użytkownik dodany pomyślnie.')
@@ -107,25 +100,7 @@ def download_history():
             history = f.readlines()
     return render_template('history.html', history=history)
 
-def create_default_admins():
-    with sqlite3.connect(DATABASE) as conn:
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password TEXT NOT NULL,
-                        is_admin INTEGER NOT NULL)''')
-        admins = [("admin1", "admin1pass"), ("admin2", "admin2pass")]
-        for username, password in admins:
-            hashed_pw = generate_password_hash(password)
-            try:
-                c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_pw, 1))
-                print(f"Utworzono domyślnego administratora: {username}")
-            except sqlite3.IntegrityError:
-                pass
-        conn.commit()
-
 if __name__ == '__main__':
-    init_db()
-    create_default_admins()
+    from init_db import run_init
+    run_init()
     app.run(debug=True)
