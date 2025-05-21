@@ -1,15 +1,24 @@
 {% extends "base.html" %}
-{% block title %}📜 Download-Historie{% endblock %}
+{% block title %}Download-Historie{% endblock %}
 {% block content %}
-<h2>📜 Deine Download-Historie</h2>
+<h2>📜 Download-Historie</h2>
 
-<ul class="list-group">
-  {% for entry in history %}
-    <li class="list-group-item">
-      {{ entry.timestamp }} – {{ entry.filename }}
-    </li>
-  {% else %}
-    <li class="list-group-item">Keine Einträge vorhanden.</li>
-  {% endfor %}
-</ul>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Benutzer</th>
+      <th>Datei</th>
+      <th>Zeitpunkt</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in history %}
+      <tr>
+        <td>{{ entry.username }}</td>
+        <td>{{ entry.filename }}</td>
+        <td>{{ entry.timestamp }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
