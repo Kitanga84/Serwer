@@ -1,201 +1,91 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, redirect, url_for, request, flash, session
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-import os
-import json
-from datetime import datetime
-from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = "geheim_schlüssel"
+app.config['SECRET_KEY'] = 'dein_geheimes_schluessel'  # zmień na swoje silne hasło
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-UPLOAD_FOLDER = "uploads"
-SHARED_FOLDER = os.path.join(UPLOAD_FOLDER, "shared")
-HISTORY_FILE = "download_history.json"
-USER_FILE = "users.json"
+db = SQLAlchemy(app)
 
-# Ordner vorbereiten
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(SHARED_FOLDER, exist_ok=True)
+# Model użytkownika
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
+# Tworzenie tabeli przy pierwszym uruchomieniu
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
-# --- HILFSFUNKTIONEN --- #
-
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if "username" not in session:
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return wrapper
-
-
-def load_users():
-    if os.path.exists(USER_FILE):
-        with open(USER_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-
-def save_users(users):
-    with open(USER_FILE, "w") as f:
-        json.dump(users, f)
-
-
-def load_history():
-    if os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, "r") as f:
-            return json.load(f)
-    return []
-
-
-def save_history(history):
-    with open(HISTORY_FILE, "w") as f:
-        json.dump(history, f)
-
-
-# --- ROUTEN --- #
-
-@app.route("/")
-@login_required
+# Strona główna
+@app.route('/')
 def index():
-    username = session["username"]
-    user_folder = os.path.join(UPLOAD_FOLDER, username)
-    os.makedirs(user_folder, exist_ok=True)
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    return render_template('index.html', user=user)
 
-    user_files = os.listdir(user_folder)
-    shared_files = os.listdir(SHARED_FOLDER)
-
-    return render_template("index.html",
-                           username=username,
-                           user_files=user_files,
-                           shared_files=shared_files)
-
-
-@app.route("/login", methods=["GET", "POST"])
+# Logowanie
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        users = load_users()
-        username = request.form["username"]
-        password = request.form["password"]
-
-        if username in users and check_password_hash(users[username], password):
-            session["username"] = username
-            flash("Erfolgreich eingeloggt.", "success")
-            return redirect(url_for("index"))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            flash('Erfolgreich eingeloggt.', 'success')
+            return redirect(url_for('index'))
         else:
-            flash("Ungültige Anmeldedaten.", "danger")
+            flash('Ungültiger Benutzername oder Passwort.', 'danger')
+    return render_template('login.html')
 
-    return render_template("login.html")
-
-
-@app.route("/logout")
+# Wylogowanie
+@app.route('/logout')
 def logout():
-    session.pop("username", None)
-    flash("Erfolgreich abgemeldet.", "info")
-    return redirect(url_for("login"))
+    session.pop('user_id', None)
+    flash('Erfolgreich ausgeloggt.', 'info')
+    return redirect(url_for('login'))
 
-
-@app.route("/register", methods=["GET", "POST"])
-@login_required
+# Rejestracja - tylko dla admina
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    if session["username"] not in ["admin1", "admin2"]:
-        flash("Nur Administratoren dürfen neue Benutzer erstellen.", "danger")
-        return redirect(url_for("index"))
+    if 'user_id' not in session:
+        flash('Bitte zuerst einloggen.', 'warning')
+        return redirect(url_for('login'))
+    current_user = User.query.get(session['user_id'])
+    if not current_user.is_admin:
+        flash('Keine Berechtigung.', 'danger')
+        return redirect(url_for('index'))
 
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first():
+            flash('Benutzername existiert bereits.', 'danger')
+            return redirect(url_for('register'))
+        hashed_pw = generate_password_hash(password)
+        new_user = User(username=username, password=hashed_pw, is_admin=False)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Benutzer erfolgreich erstellt.', 'success')
+        return redirect(url_for('index'))
+    return render_template('register.html')
 
-        if not username or not password:
-            flash("Alle Felder müssen ausgefüllt werden.", "warning")
-            return render_template("register.html")
+# Tymczasowa trasa do utworzenia pierwszego admina
+@app.route('/create_admin')
+def create_admin():
+    if User.query.filter_by(username='admin1').first():
+        return "Admin existiert schon"
+    hashed_pw = generate_password_hash('deinpasswort123')
+    admin = User(username='admin1', password=hashed_pw, is_admin=True)
+    db.session.add(admin)
+    db.session.commit()
+    return "Admin wurde erstellt! Bitte entferne / deaktiviere diese Route nach Gebrauch."
 
-        users = load_users()
-        if username in users:
-            flash("Benutzername ist bereits vergeben.", "danger")
-        else:
-            users[username] = generate_password_hash(password)
-            save_users(users)
-            os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
-            flash(f"Benutzer '{username}' wurde erfolgreich erstellt.", "success")
-            return redirect(url_for("index"))
-
-    return render_template("register.html")
-
-
-@app.route("/upload", methods=["POST"])
-@login_required
-def upload():
-    if "file" not in request.files:
-        flash("Keine Datei ausgewählt.", "warning")
-        return redirect(url_for("index"))
-
-    file = request.files["file"]
-    if file.filename == "":
-        flash("Dateiname fehlt.", "warning")
-        return redirect(url_for("index"))
-
-    target = request.form.get("target")
-    if target == "shared":
-        path = SHARED_FOLDER
-    else:
-        path = os.path.join(UPLOAD_FOLDER, session["username"])
-
-    filename = secure_filename(file.filename)
-    file.save(os.path.join(path, filename))
-    flash("Datei erfolgreich hochgeladen.", "success")
-    return redirect(url_for("index"))
-
-
-@app.route("/download/<path:folder>/<filename>")
-@login_required
-def download(folder, filename):
-    if folder == "shared":
-        path = SHARED_FOLDER
-    else:
-        path = os.path.join(UPLOAD_FOLDER, folder)
-
-    filepath = os.path.join(path, filename)
-    if not os.path.exists(filepath):
-        flash("Datei nicht gefunden.", "danger")
-        return redirect(url_for("index"))
-
-    history = load_history()
-    history.append({
-        "user": session["username"],
-        "file": filename,
-        "from": folder,
-        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
-    save_history(history)
-
-    return send_from_directory(path, filename, as_attachment=True)
-
-
-@app.route("/delete/<path:folder>/<filename>")
-@login_required
-def delete_file(folder, filename):
-    if folder == "shared":
-        path = SHARED_FOLDER
-    else:
-        if folder != session["username"] and session["username"] not in ["admin1", "admin2"]:
-            flash("Keine Berechtigung zum Löschen dieser Datei.", "danger")
-            return redirect(url_for("index"))
-        path = os.path.join(UPLOAD_FOLDER, folder)
-
-    filepath = os.path.join(path, filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        flash("Datei gelöscht.", "info")
-    else:
-        flash("Datei existiert nicht.", "warning")
-
-    return redirect(url_for("index"))
-
-
-@app.route("/download_history")
-@login_required
-def download_history():
-    history = load_history()
-    return render_template("history.html", history=history)
+if __name__ == '__main__':
+    app.run(debug=True)
