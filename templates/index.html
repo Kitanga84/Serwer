@@ -1,70 +1,45 @@
 {% extends "base.html" %}
-
 {% block title %}Startseite{% endblock %}
-
 {% block content %}
-  <h2>📂 Deine Dateien</h2>
 
-  <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="mb-3">
-    <div class="mb-2">
-      <label for="file" class="form-label">Datei hochladen:</label>
-      <input type="file" name="file" id="file" class="form-control" required>
-    </div>
-    <div class="mb-2">
-      <label for="folder" class="form-label">Zielordner:</label>
-      <select name="folder" id="folder" class="form-select">
-        <option value="private">🔒 Privat</option>
-        <option value="shared">🤝 Gemeinsam</option>
-      </select>
-    </div>
+<h2>🗂️ Deine Dateien</h2>
+
+<form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="mb-4">
+  <div class="input-group">
+    <input type="file" name="file" class="form-control">
+    <select name="destination" class="form-select">
+      <option value="private">Privat</option>
+      <option value="shared">Gemeinsam</option>
+    </select>
     <button type="submit" class="btn btn-primary">⬆️ Hochladen</button>
-  </form>
+  </div>
+</form>
 
-  <h3>🔒 Deine privaten Dateien</h3>
-  {% if files %}
-    <ul class="list-group mb-4">
-      {% for file in files %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ file }}
-          <span>
-            <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️ Herunterladen</a>
-            <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️ Löschen</a>
-          </span>
-        </li>
-      {% endfor %}
-    </ul>
+<h4>📁 Eigene Dateien</h4>
+<ul class="list-group mb-4">
+  {% for file in files %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      {{ file }}
+      <span>
+        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-success">⬇️</a>
+        <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-danger">🗑️</a>
+      </span>
+    </li>
   {% else %}
-    <p class="text-muted">Keine privaten Dateien vorhanden.</p>
-  {% endif %}
+    <li class="list-group-item">Keine Dateien.</li>
+  {% endfor %}
+</ul>
 
-  <h3>🤝 Gemeinsamer Ordner</h3>
-  {% if shared_files %}
-    <ul class="list-group mb-4">
-      {% for file in shared_files %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ file }}
-          <span>
-            <a href="{{ url_for('download_shared_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️ Herunterladen</a>
-            <a href="{{ url_for('delete_shared_file', filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️ Löschen</a>
-          </span>
-        </li>
-      {% endfor %}
-    </ul>
+<h4>🔗 Geteilte Dateien</h4>
+<ul class="list-group">
+  {% for file in shared_files %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      {{ file }}
+      <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-success">⬇️</a>
+    </li>
   {% else %}
-    <p class="text-muted">Noch keine gemeinsamen Dateien.</p>
-  {% endif %}
+    <li class="list-group-item">Keine geteilten Dateien.</li>
+  {% endfor %}
+</ul>
 
-  <h3>🕓 Verlauf der Datei-Downloads</h3>
-  {% if history %}
-    <ul class="list-group">
-      {% for entry in history %}
-        <li class="list-group-item">
-          📄 {{ entry.filename }} – 👤 {{ entry.username }} – ⏰ {{ entry.timestamp }}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted">Noch keine Downloads protokolliert.</p>
-  {% endif %}
 {% endblock %}
-
