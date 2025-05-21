@@ -1,44 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Startseite{% endblock %}
+{% block title %}Start{% endblock %}
 {% block content %}
-<h2>📂 Eigene Dateien</h2>
-<form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
-  <div class="mb-3">
-    <input type="file" name="file" class="form-control">
-  </div>
-  <button type="submit" class="btn btn-primary">📤 Hochladen</button>
-</form>
-
-<ul class="list-group mt-3">
-  {% for file in files %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      {{ file }}
-      <div>
-        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️</a>
-        <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️</a>
-      </div>
-    </li>
-  {% endfor %}
-</ul>
-
-<h2 class="mt-5">👥 Gemeinsamer Ordner</h2>
-<form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_shared_file') }}">
-  <div class="mb-3">
-    <input type="file" name="file" class="form-control">
-  </div>
-  <button type="submit" class="btn btn-secondary">📤 Hochladen (gemeinsam)</button>
-</form>
-
-<ul class="list-group mt-3">
-  {% for file in shared_files %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      {{ file }}
-      <div>
-        <a href="{{ url_for('download_file', filename=file, shared='1') }}" class="btn btn-sm btn-outline-success">⬇️</a>
-        <a href="{{ url_for('delete_file', filename=file, shared='1') }}" class="btn btn-sm btn-outline-danger">🗑️</a>
-      </div>
-    </li>
-  {% endfor %}
-</ul>
+<h2>Witaj {{ username }}!</h2>
+{% if is_admin %}
+    <a href="{{ url_for('register') }}" class="btn btn-success">➕ Dodaj użytkownika</a>
+{% endif %}
+<a href="{{ url_for('download_history') }}" class="btn btn-secondary">📜 Historia</a>
+<a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 Wyloguj</a>
 {% endblock %}
-
