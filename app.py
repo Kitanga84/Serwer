@@ -1,15 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
 import os, json
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "geheim_key"
-
 UPLOAD_FOLDER = "uploads"
-SHARED_FOLDER = os.path.join(UPLOAD_FOLDER, "shared")
-os.makedirs(SHARED_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER, "shared"), exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
 USERS_FILE = "users.json"
 
 def load_users():
@@ -26,6 +25,11 @@ def ensure_user_folder(username):
     folder = os.path.join(app.config["UPLOAD_FOLDER"], username)
     os.makedirs(folder, exist_ok=True)
     return folder
+
+def log_download(username, filename, source):
+    with open("downloads.log", "a") as f:
+        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        f.write(f"{time} - {username} downloaded '{filename}' from {source}\n")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -65,75 +69,71 @@ def logout():
 def upload_file():
     if "username" not in session:
         return redirect(url_for("login"))
-
     file = request.files.get("file")
+    location = request.form.get("location")
     if not file or file.filename == "":
         flash("❌ Keine Datei ausgewählt.")
         return redirect(url_for("index"))
 
     filename = secure_filename(file.filename)
-    user_folder = ensure_user_folder(session["username"])
-    file.save(os.path.join(user_folder, filename))
+    if location == "shared":
+        folder = os.path.join(app.config["UPLOAD_FOLDER"], "shared")
+    else:
+        folder = ensure_user_folder(session["username"])
 
+    os.makedirs(folder, exist_ok=True)
+    file.save(os.path.join(folder, filename))
     flash(f"✅ Datei '{filename}' wurde hochgeladen.")
     return redirect(url_for("index"))
 
 @app.route("/download/<username>/<filename>")
 def download_file(username, filename):
-    if "username" not in session:
-        flash("❌ Nicht eingeloggt.")
-        return redirect(url_for("login"))
-
-    # Zabezpieczenie: tylko właściciel może pobrać plik
-    if session["username"] != username:
-        flash("❌ Zugriff verweigert – nur Eigentümer.")
+    if "username" not in session or session["username"] != username:
+        flash("⛔ Zugriff verweigert.")
         return redirect(url_for("index"))
-
-    user_folder = ensure_user_folder(username)
-    return send_from_directory(user_folder, filename, as_attachment=True)
+    folder = ensure_user_folder(username)
+    log_download(session["username"], filename, "private")
+    return send_from_directory(folder, filename, as_attachment=True)
 
 @app.route("/download/shared/<filename>")
 def download_shared_file(filename):
-    return send_from_directory(SHARED_FOLDER, filename, as_attachment=True)
-
-@app.route("/delete/<location>/<filename>", methods=["POST"])
-def delete_file(location, filename):
     if "username" not in session:
-        flash("❌ Nicht eingeloggt.")
         return redirect(url_for("login"))
+    folder = os.path.join(app.config["UPLOAD_FOLDER"], "shared")
+    log_download(session["username"], filename, "shared")
+    return send_from_directory(folder, filename, as_attachment=True)
 
-    username = session["username"]
-    if location == "private":
-        file_path = os.path.join(app.config["UPLOAD_FOLDER"], username, filename)
-    elif location == "shared":
-        file_path = os.path.join(SHARED_FOLDER, filename)
-    else:
-        flash("❌ Ungültiger Speicherort.")
+@app.route("/delete/<username>/<filename>")
+def delete_file(username, filename):
+    if "username" not in session or session["username"] != username:
+        flash("⛔ Zugriff verweigert.")
         return redirect(url_for("index"))
-
-    if not os.path.exists(file_path):
-        flash("❌ Datei nicht gefunden.")
-        return redirect(url_for("index"))
-
-    if location == "private" and username not in file_path:
-        flash("❌ Keine Berechtigung zum Löschen dieser Datei.")
-        return redirect(url_for("index"))
-
-    os.remove(file_path)
-    flash(f"🗑️ Datei '{filename}' wurde gelöscht.")
+    folder = ensure_user_folder(username)
+    path = os.path.join(folder, filename)
+    if os.path.exists(path):
+        os.remove(path)
+        flash(f"🗑️ Datei '{filename}' gelöscht.")
     return redirect(url_for("index"))
+
+@app.route("/history")
+def download_history():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    if not os.path.exists("downloads.log"):
+        history = []
+    else:
+        with open("downloads.log", "r") as f:
+            lines = f.readlines()
+        history = [line.strip() for line in lines if session["username"] in line]
+    return render_template("history.html", history=history)
 
 @app.route("/")
 def index():
     if "username" not in session:
         return redirect(url_for("login"))
-
     username = session["username"]
     user_folder = ensure_user_folder(username)
-    private_files = os.listdir(user_folder)
-    shared_files = os.listdir(SHARED_FOLDER)
-
-    return render_template("index.html", username=username, files=private_files, shared_files=shared_files)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    user_files = os.listdir(user_folder)
+    shared_folder = os.path.join(app.config["UPLOAD_FOLDER"], "shared")
+    shared_files = os.listdir(shared_folder)
+    return render_template("index.html", username=username, user_files=user_files, shared_files=shared_files)
