@@ -1,7 +1,7 @@
 import os
 import json
-import hashlib
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
@@ -47,7 +47,7 @@ def register():
         if username in users:
             flash('Benutzername existiert bereits.', 'danger')
             return redirect(url_for('register'))
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        password_hash = generate_password_hash(password)
         users[username] = {
             "password": password_hash,
             "is_admin": username in ADMINS
@@ -65,8 +65,7 @@ def login():
         password = request.form['password']
         users = load_data(USER_FILE)
         if username in users:
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
-            if users[username]['password'] == password_hash:
+            if check_password_hash(users[username]['password'], password):
                 session['username'] = username
                 session['is_admin'] = users[username].get('is_admin', False)
                 flash('Anmeldung erfolgreich.', 'success')
@@ -112,7 +111,12 @@ def download(folder, filename):
         flash('Datei nicht gefunden.', 'danger')
         return redirect(url_for('index'))
     history = load_data(HISTORY_FILE)
-    history.append({"user": username, "file": filename, "from": folder, "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    history.append({
+        "user": username,
+        "file": filename,
+        "from": folder,
+        "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
     save_data(HISTORY_FILE, history)
     return send_from_directory(os.path.join(UPLOAD_FOLDER, folder), filename, as_attachment=True)
 
