@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Benutzerliste{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Benutzerliste</h2>
+
+  {% if users %}
+    <ul class="list-group">
+      {% for user in users %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          {{ user }}
+          {% if user not in ['admin1', 'admin2'] %}
+            <form action="{{ url_for('delete_user', username=user) }}" method="POST" style="margin: 0;">
+              <button class="btn btn-sm btn-danger" onclick="return confirm('Benutzer wirklich löschen?')">Löschen</button>
+            </form>
+          {% else %}
+            <span class="badge bg-secondary">Admin</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Keine Benutzer gefunden.</p>
+  {% endif %}
+
+  <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Zurück</a>
+</div>
+{% endblock %}
