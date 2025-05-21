@@ -4,7 +4,6 @@
 {% block content %}
 <div class="container mt-4">
   <h2>Download-Historie</h2>
-
   {% if history %}
   <table class="table table-striped">
     <thead>
@@ -29,7 +28,6 @@
   {% else %}
   <p>Keine Download-Einträge vorhanden.</p>
   {% endif %}
-
   <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Zurück</a>
 </div>
 {% endblock %}
