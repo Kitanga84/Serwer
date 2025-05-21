@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'tajny_klucz'
+app.secret_key = 'geheimer_schlüssel'
 
 UPLOAD_FOLDER = 'uploads'
 SHARED_FOLDER = 'shared'
@@ -44,7 +44,7 @@ def create_default_admins():
             try:
                 c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_pw, 1))
                 os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
-                print(f"Utworzono domyślnego administratora: {username}")
+                print(f"Standard-Admin erstellt: {username}")
             except sqlite3.IntegrityError:
                 pass
         conn.commit()
@@ -72,9 +72,9 @@ def register():
                          (username, password, is_admin))
             conn.commit()
             os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
-            flash('Użytkownik dodany pomyślnie.')
+            flash('Benutzer erfolgreich hinzugefügt.')
         except sqlite3.IntegrityError:
-            flash('Nazwa użytkownika jest już zajęta.')
+            flash('Benutzername ist bereits vergeben.')
         finally:
             conn.close()
     return render_template('register.html')
@@ -94,7 +94,7 @@ def login():
             session['is_admin'] = user['is_admin']
             return redirect(url_for('index'))
         else:
-            flash('Nieprawidłowy login lub hasło.')
+            flash('Ungültiger Benutzername oder Passwort.')
 
     return render_template('login.html')
 
@@ -110,7 +110,7 @@ def upload_file():
 
     file = request.files['file']
     if file.filename == '':
-        flash('Nie wybrano pliku.')
+        flash('Keine Datei ausgewählt.')
         return redirect(url_for('index'))
 
     user_folder = os.path.join(UPLOAD_FOLDER, session['username'])
@@ -119,7 +119,7 @@ def upload_file():
     filepath = os.path.join(user_folder, file.filename)
     file.save(filepath)
 
-    flash('Plik przesłany pomyślnie.')
+    flash('Datei erfolgreich hochgeladen.')
     return redirect(url_for('index'))
 
 @app.route('/download/<folder>/<filename>')
@@ -128,13 +128,13 @@ def download_file(folder, filename):
         return redirect(url_for('login'))
     filepath = os.path.join(folder, filename)
     if not os.path.exists(filepath):
-        return "Plik nie istnieje", 404
+        return "Datei existiert nicht", 404
     log_download(session['username'], filename)
     return send_from_directory(folder, filename, as_attachment=True)
 
 def log_download(username, filename):
     with open(HISTORY_LOG, 'a') as f:
-        f.write(f"{datetime.now()} - {username} pobrał {filename}\n")
+        f.write(f"{datetime.now()} - {username} hat {filename} heruntergeladen\n")
 
 @app.route('/download_history')
 def download_history():
