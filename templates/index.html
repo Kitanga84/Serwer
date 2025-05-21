@@ -1,42 +1,44 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel użytkownika</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container mt-5">
-    <h2>Witaj, {{ username }}!</h2>
-    <p><a href="{{ url_for('logout') }}">Wyloguj się</a></p>
+{% extends "base.html" %}
+{% block title %}Startseite{% endblock %}
+{% block content %}
+<h1>Willkommen, {{ session['username'] }}!</h1>
 
-    {% if is_admin %}
-        <a href="{{ url_for('register') }}" class="btn btn-primary mb-3">Dodaj nowego użytkownika</a>
-    {% endif %}
+<h3>Dein privater Ordner</h3>
+{% if private_files %}
+<ul class="list-group mb-3">
+  {% for file in private_files %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    {{ file }}
+    <span>
+      <a href="{{ url_for('download_file', filename=file, private=1) }}" class="btn btn-primary btn-sm">Herunterladen</a>
+      <a href="{{ url_for('delete_file', filename=file, private=1) }}" class="btn btn-danger btn-sm"
+         onclick="return confirm('Datei wirklich löschen?');">Löschen</a>
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Keine Dateien im privaten Ordner.</p>
+{% endif %}
 
-    <h4>Prześlij plik</h4>
-    <form method="post" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" class="mb-4">
-        <div class="input-group">
-            <input type="file" name="file" class="form-control" required>
-            <button type="submit" class="btn btn-success">Prześlij</button>
-        </div>
-    </form>
+<h3>Gemeinsamer Ordner</h3>
+{% if shared_files %}
+<ul class="list-group">
+  {% for file in shared_files %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    {{ file }}
+    <span>
+      <a href="{{ url_for('download_file', filename=file, private=0) }}" class="btn btn-primary btn-sm">Herunterladen</a>
+      {% if session.get('is_admin') %}
+      <a href="{{ url_for('delete_file', filename=file, private=0) }}" class="btn btn-danger btn-sm"
+         onclick="return confirm('Datei wirklich löschen?');">Löschen</a>
+      {% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Keine Dateien im gemeinsamen Ordner.</p>
+{% endif %}
 
-    <h4>Twoje pliki</h4>
-    {% if files %}
-        <ul class="list-group mb-4">
-            {% for file in files %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ file }}
-                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('download_file', folder='uploads/' + username, filename=file) }}">Pobierz</a>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Brak przesłanych plików.</p>
-    {% endif %}
-
-    <a class="btn btn-secondary" href="{{ url_for('download_history') }}">Zobacz historię pobrań</a>
-</div>
-</body>
-</html>
+{% endblock %}
