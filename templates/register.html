@@ -1,21 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Registrieren{% endblock %}
+
 {% block content %}
-<h2>Registrieren</h2>
+<h2>Neuen Benutzer registrieren</h2>
 <form method="POST" action="{{ url_for('register') }}">
-  <div class="mb-3">
-    <label for="username" class="form-label">Benutzername</label>
-    <input type="text" class="form-control" id="username" name="username" required autofocus />
-  </div>
-  <div class="mb-3">
-    <label for="password" class="form-label">Passwort</label>
-    <input type="password" class="form-control" id="password" name="password" required />
-  </div>
-  <div class="mb-3">
-    <label for="password2" class="form-label">Passwort bestätigen</label>
-    <input type="password" class="form-control" id="password2" name="password2" required />
-  </div>
-  <button type="submit" class="btn btn-success">Registrieren</button>
+    <div class="mb-3">
+        <label for="username" class="form-label">Benutzername</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Passwort</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Konto erstellen</button>
 </form>
-<p class="mt-3">Schon einen Account? <a href="{{ url_for('login') }}">Anmelden</a></p>
 {% endblock %}
