@@ -15,7 +15,8 @@ def run_init():
         for username, password in admins:
             hashed_pw = generate_password_hash(password)
             try:
-                c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_pw, 1))
+                c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)",
+                          (username, hashed_pw, 1))
                 print(f"Utworzono domyślnego administratora: {username}")
             except sqlite3.IntegrityError:
                 pass
