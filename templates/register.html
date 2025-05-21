@@ -1,16 +1,19 @@
 {% extends "base.html" %}
+{% block title %}Registrieren{% endblock %}
 
 {% block content %}
-<h2>Neuen Benutzer registrieren</h2>
-<form method="POST" action="{{ url_for('register') }}">
+<div class="container mt-5" style="max-width: 400px;">
+  <h2 class="mb-4">Neuen Benutzer registrieren</h2>
+  <form method="POST" action="{{ url_for('register') }}">
     <div class="mb-3">
-        <label for="username" class="form-label">Benutzername</label>
-        <input type="text" class="form-control" id="username" name="username" required>
+      <label for="username" class="form-label">Benutzername</label>
+      <input type="text" class="form-control" id="username" name="username" required>
     </div>
     <div class="mb-3">
-        <label for="password" class="form-label">Passwort</label>
-        <input type="password" class="form-control" id="password" name="password" required>
+      <label for="password" class="form-label">Passwort</label>
+      <input type="password" class="form-control" id="password" name="password" required>
     </div>
-    <button type="submit" class="btn btn-primary">Konto erstellen</button>
-</form>
+    <button type="submit" class="btn btn-success w-100">Registrieren</button>
+  </form>
+</div>
 {% endblock %}
