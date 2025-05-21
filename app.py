@@ -1,153 +1,201 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-import sqlite3
+import json
 from datetime import datetime
+from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = 'geheimer_schlüssel'
+app.secret_key = "geheim_schlüssel"
 
-UPLOAD_FOLDER = 'uploads'
-SHARED_FOLDER = 'shared'
-DATABASE = 'users.db'
-HISTORY_LOG = 'download_history.log'
+UPLOAD_FOLDER = "uploads"
+SHARED_FOLDER = os.path.join(UPLOAD_FOLDER, "shared")
+HISTORY_FILE = "download_history.json"
+USER_FILE = "users.json"
 
+# Ordner vorbereiten
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHARED_FOLDER, exist_ok=True)
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
 
-def init_db():
-    conn = get_db_connection()
-    conn.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password TEXT NOT NULL,
-                        is_admin INTEGER NOT NULL)''')
-    conn.commit()
-    conn.close()
+# --- HILFSFUNKTIONEN --- #
 
-def create_default_admins():
-    with sqlite3.connect(DATABASE) as conn:
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password TEXT NOT NULL,
-                        is_admin INTEGER NOT NULL)''')
-        admins = [("admin1", "admin1pass"), ("admin2", "admin2pass")]
-        for username, password in admins:
-            hashed_pw = generate_password_hash(password)
-            try:
-                c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", (username, hashed_pw, 1))
-                os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
-                print(f"Standard-Admin erstellt: {username}")
-            except sqlite3.IntegrityError:
-                pass
-        conn.commit()
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "username" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
 
-@app.route('/')
+
+def load_users():
+    if os.path.exists(USER_FILE):
+        with open(USER_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def save_users(users):
+    with open(USER_FILE, "w") as f:
+        json.dump(users, f)
+
+
+def load_history():
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+
+def save_history(history):
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f)
+
+
+# --- ROUTEN --- #
+
+@app.route("/")
+@login_required
 def index():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    user_folder = os.path.join(UPLOAD_FOLDER, session['username'])
-    files = os.listdir(user_folder) if os.path.exists(user_folder) else []
-    return render_template('index.html', username=session['username'], is_admin=session.get('is_admin', 0), files=files)
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if not session.get('is_admin'):
-        return redirect(url_for('index'))
-    if request.method == 'POST':
-        username = request.form['username']
-        password = generate_password_hash(request.form['password'])
-        is_admin = 1 if 'is_admin' in request.form else 0
-
-        conn = get_db_connection()
-        try:
-            conn.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)",
-                         (username, password, is_admin))
-            conn.commit()
-            os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
-            flash('Benutzer erfolgreich hinzugefügt.')
-        except sqlite3.IntegrityError:
-            flash('Benutzername ist bereits vergeben.')
-        finally:
-            conn.close()
-    return render_template('register.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        conn = get_db_connection()
-        user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-        conn.close()
-
-        if user and check_password_hash(user['password'], password):
-            session['username'] = user['username']
-            session['is_admin'] = user['is_admin']
-            return redirect(url_for('index'))
-        else:
-            flash('Ungültiger Benutzername oder Passwort.')
-
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    file = request.files['file']
-    if file.filename == '':
-        flash('Keine Datei ausgewählt.')
-        return redirect(url_for('index'))
-
-    user_folder = os.path.join(UPLOAD_FOLDER, session['username'])
+    username = session["username"]
+    user_folder = os.path.join(UPLOAD_FOLDER, username)
     os.makedirs(user_folder, exist_ok=True)
 
-    filepath = os.path.join(user_folder, file.filename)
-    file.save(filepath)
+    user_files = os.listdir(user_folder)
+    shared_files = os.listdir(SHARED_FOLDER)
 
-    flash('Datei erfolgreich hochgeladen.')
-    return redirect(url_for('index'))
+    return render_template("index.html",
+                           username=username,
+                           user_files=user_files,
+                           shared_files=shared_files)
 
-@app.route('/download/<folder>/<filename>')
-def download_file(folder, filename):
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    filepath = os.path.join(folder, filename)
-    if not os.path.exists(filepath):
-        return "Datei existiert nicht", 404
-    log_download(session['username'], filename)
-    return send_from_directory(folder, filename, as_attachment=True)
 
-def log_download(username, filename):
-    with open(HISTORY_LOG, 'a') as f:
-        f.write(f"{datetime.now()} - {username} hat {filename} heruntergeladen\n")
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        users = load_users()
+        username = request.form["username"]
+        password = request.form["password"]
 
-@app.route('/download_history')
-def download_history():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    if not os.path.exists(HISTORY_LOG):
-        history = []
+        if username in users and check_password_hash(users[username], password):
+            session["username"] = username
+            flash("Erfolgreich eingeloggt.", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Ungültige Anmeldedaten.", "danger")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("username", None)
+    flash("Erfolgreich abgemeldet.", "info")
+    return redirect(url_for("login"))
+
+
+@app.route("/register", methods=["GET", "POST"])
+@login_required
+def register():
+    if session["username"] not in ["admin1", "admin2"]:
+        flash("Nur Administratoren dürfen neue Benutzer erstellen.", "danger")
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if not username or not password:
+            flash("Alle Felder müssen ausgefüllt werden.", "warning")
+            return render_template("register.html")
+
+        users = load_users()
+        if username in users:
+            flash("Benutzername ist bereits vergeben.", "danger")
+        else:
+            users[username] = generate_password_hash(password)
+            save_users(users)
+            os.makedirs(os.path.join(UPLOAD_FOLDER, username), exist_ok=True)
+            flash(f"Benutzer '{username}' wurde erfolgreich erstellt.", "success")
+            return redirect(url_for("index"))
+
+    return render_template("register.html")
+
+
+@app.route("/upload", methods=["POST"])
+@login_required
+def upload():
+    if "file" not in request.files:
+        flash("Keine Datei ausgewählt.", "warning")
+        return redirect(url_for("index"))
+
+    file = request.files["file"]
+    if file.filename == "":
+        flash("Dateiname fehlt.", "warning")
+        return redirect(url_for("index"))
+
+    target = request.form.get("target")
+    if target == "shared":
+        path = SHARED_FOLDER
     else:
-        with open(HISTORY_LOG, 'r') as f:
-            history = f.readlines()
-    return render_template('history.html', history=history)
+        path = os.path.join(UPLOAD_FOLDER, session["username"])
 
-if __name__ == '__main__':
-    init_db()
-    create_default_admins()
-    app.run(debug=True)
+    filename = secure_filename(file.filename)
+    file.save(os.path.join(path, filename))
+    flash("Datei erfolgreich hochgeladen.", "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/download/<path:folder>/<filename>")
+@login_required
+def download(folder, filename):
+    if folder == "shared":
+        path = SHARED_FOLDER
+    else:
+        path = os.path.join(UPLOAD_FOLDER, folder)
+
+    filepath = os.path.join(path, filename)
+    if not os.path.exists(filepath):
+        flash("Datei nicht gefunden.", "danger")
+        return redirect(url_for("index"))
+
+    history = load_history()
+    history.append({
+        "user": session["username"],
+        "file": filename,
+        "from": folder,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+    save_history(history)
+
+    return send_from_directory(path, filename, as_attachment=True)
+
+
+@app.route("/delete/<path:folder>/<filename>")
+@login_required
+def delete_file(folder, filename):
+    if folder == "shared":
+        path = SHARED_FOLDER
+    else:
+        if folder != session["username"] and session["username"] not in ["admin1", "admin2"]:
+            flash("Keine Berechtigung zum Löschen dieser Datei.", "danger")
+            return redirect(url_for("index"))
+        path = os.path.join(UPLOAD_FOLDER, folder)
+
+    filepath = os.path.join(path, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        flash("Datei gelöscht.", "info")
+    else:
+        flash("Datei existiert nicht.", "warning")
+
+    return redirect(url_for("index"))
+
+
+@app.route("/download_history")
+@login_required
+def download_history():
+    history = load_history()
+    return render_template("history.html", history=history)
