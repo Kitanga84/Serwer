@@ -1,72 +1,70 @@
 {% extends "base.html" %}
 
-{% block title %}Dateiübersicht{% endblock %}
+{% block title %}Startseite{% endblock %}
 
 {% block content %}
-  <h2>🗂️ Eigene Dateien</h2>
+  <h2>📂 Deine Dateien</h2>
 
   <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="mb-3">
-    <div class="input-group">
-      <input type="file" name="file" class="form-control" required>
-      <button class="btn btn-primary" type="submit">⬆️ Hochladen</button>
+    <div class="mb-2">
+      <label for="file" class="form-label">Datei hochladen:</label>
+      <input type="file" name="file" id="file" class="form-control" required>
     </div>
+    <div class="mb-2">
+      <label for="folder" class="form-label">Zielordner:</label>
+      <select name="folder" id="folder" class="form-select">
+        <option value="private">🔒 Privat</option>
+        <option value="shared">🤝 Gemeinsam</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">⬆️ Hochladen</button>
   </form>
 
+  <h3>🔒 Deine privaten Dateien</h3>
   {% if files %}
     <ul class="list-group mb-4">
       {% for file in files %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
           {{ file }}
-          <div>
-            <a href="{{ url_for('download_file', username=username, filename=file) }}" class="btn btn-outline-success btn-sm">⬇️</a>
-            <form action="{{ url_for('delete_file', folder=username, filename=file) }}" method="post" class="d-inline">
-              <button class="btn btn-outline-danger btn-sm">🗑️</button>
-            </form>
-          </div>
+          <span>
+            <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️ Herunterladen</a>
+            <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️ Löschen</a>
+          </span>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>Keine eigenen Dateien vorhanden.</p>
+    <p class="text-muted">Keine privaten Dateien vorhanden.</p>
   {% endif %}
 
-  <h2>👥 Gemeinsame Dateien</h2>
-
-  <form action="{{ url_for('upload_shared_file') }}" method="post" enctype="multipart/form-data" class="mb-3">
-    <div class="input-group">
-      <input type="file" name="file" class="form-control" required>
-      <button class="btn btn-secondary" type="submit">⬆️ In gemeinsamen Ordner hochladen</button>
-    </div>
-  </form>
-
+  <h3>🤝 Gemeinsamer Ordner</h3>
   {% if shared_files %}
     <ul class="list-group mb-4">
       {% for file in shared_files %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
           {{ file }}
-          <div>
-            <a href="{{ url_for('download_shared_file', filename=file) }}" class="btn btn-outline-success btn-sm">⬇️</a>
-            <form action="{{ url_for('delete_file', folder='shared', filename=file) }}" method="post" class="d-inline">
-              <button class="btn btn-outline-danger btn-sm">🗑️</button>
-            </form>
-          </div>
+          <span>
+            <a href="{{ url_for('download_shared_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️ Herunterladen</a>
+            <a href="{{ url_for('delete_shared_file', filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️ Löschen</a>
+          </span>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>Keine gemeinsamen Dateien vorhanden.</p>
+    <p class="text-muted">Noch keine gemeinsamen Dateien.</p>
   {% endif %}
 
-  <h2>📜 Download-Verlauf</h2>
+  <h3>🕓 Verlauf der Datei-Downloads</h3>
   {% if history %}
     <ul class="list-group">
       {% for entry in history %}
         <li class="list-group-item">
-          {{ entry.timestamp }}: {{ entry.username }} hat <strong>{{ entry.filename }}</strong> heruntergeladen (Ordner: {{ entry.folder }})
+          📄 {{ entry.filename }} – 👤 {{ entry.username }} – ⏰ {{ entry.timestamp }}
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>Keine Downloads protokolliert.</p>
+    <p class="text-muted">Noch keine Downloads protokolliert.</p>
   {% endif %}
-{% end
+{% endblock %}
+
