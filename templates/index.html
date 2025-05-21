@@ -1,44 +1,91 @@
 {% extends "base.html" %}
-{% block title %}Startseite{% endblock %}
+{% block title %}Dateiübersicht{% endblock %}
+
 {% block content %}
-<h1>Willkommen, {{ session['username'] }}!</h1>
+<div class="container mt-4">
 
-<h3>Dein privater Ordner</h3>
-{% if private_files %}
-<ul class="list-group mb-3">
-  {% for file in private_files %}
-  <li class="list-group-item d-flex justify-content-between align-items-center">
-    {{ file }}
-    <span>
-      <a href="{{ url_for('download_file', filename=file, private=1) }}" class="btn btn-primary btn-sm">Herunterladen</a>
-      <a href="{{ url_for('delete_file', filename=file, private=1) }}" class="btn btn-danger btn-sm"
-         onclick="return confirm('Datei wirklich löschen?');">Löschen</a>
-    </span>
-  </li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>Keine Dateien im privaten Ordner.</p>
-{% endif %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Willkommen, {{ username }}!</h2>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Abmelden</a>
+  </div>
 
-<h3>Gemeinsamer Ordner</h3>
-{% if shared_files %}
-<ul class="list-group">
-  {% for file in shared_files %}
-  <li class="list-group-item d-flex justify-content-between align-items-center">
-    {{ file }}
-    <span>
-      <a href="{{ url_for('download_file', filename=file, private=0) }}" class="btn btn-primary btn-sm">Herunterladen</a>
-      {% if session.get('is_admin') %}
-      <a href="{{ url_for('delete_file', filename=file, private=0) }}" class="btn btn-danger btn-sm"
-         onclick="return confirm('Datei wirklich löschen?');">Löschen</a>
-      {% endif %}
-    </span>
-  </li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>Keine Dateien im gemeinsamen Ordner.</p>
-{% endif %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
+  <!-- Datei Hochladen -->
+  <div class="card mb-4">
+    <div class="card-header">Datei hochladen</div>
+    <div class="card-body">
+      <form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data" class="row g-3">
+        <div class="col-auto">
+          <input type="file" name="file" class="form-control" required>
+        </div>
+        <div class="col-auto">
+          <select name="target" class="form-select">
+            <option value="{{ username }}" selected>Privater Ordner</option>
+            <option value="shared">Gemeinsamer Ordner</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-success">Hochladen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Eigene Dateien -->
+  <h4>Eigene Dateien</h4>
+  {% if user_files %}
+    <ul class="list-group mb-4">
+      {% for file in user_files %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ file }}
+        <span>
+          <a href="{{ url_for('download', folder=username, filename=file) }}" class="btn btn-sm btn-primary">Herunterladen</a>
+          <a href="{{ url_for('delete_file', folder=username, filename=file) }}" class="btn btn-sm btn-danger ms-2" onclick="return confirm('Datei wirklich löschen?')">Löschen</a>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Keine Dateien im privaten Ordner.</p>
+  {% endif %}
+
+  <!-- Gemeinsame Dateien -->
+  <h4>Gemeinsamer Ordner</h4>
+  {% if shared_files %}
+    <ul class="list-group mb-4">
+      {% for file in shared_files %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ file }}
+        <span>
+          <a href="{{ url_for('download', folder='shared', filename=file) }}" class="btn btn-sm btn-primary">Herunterladen</a>
+          {% if username in ['admin1', 'admin2'] %}
+          <a href="{{ url_for('delete_file', folder='shared', filename=file) }}" class="btn btn-sm btn-danger ms-2" onclick="return confirm('Datei wirklich löschen?')">Löschen</a>
+          {% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Keine Dateien im gemeinsamen Ordner.</p>
+  {% endif %}
+
+  <!-- Link zur Registrierung nur für Admins -->
+  {% if username in ['admin1', 'admin2'] %}
+    <a href="{{ url_for('register') }}" class="btn btn-outline-primary mt-3">Neuen Benutzer registrieren</a>
+  {% endif %}
+
+  <!-- Link zur Download-Historie -->
+  <a href="{{ url_for('download_history') }}" class="btn btn-link mt-3">Download-Historie ansehen</a>
+
+</div>
 {% endblock %}
