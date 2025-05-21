@@ -1,45 +1,44 @@
 {% extends "base.html" %}
 {% block title %}Startseite{% endblock %}
 {% block content %}
-
-<h2>🗂️ Deine Dateien</h2>
-
-<form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="mb-4">
-  <div class="input-group">
+<h2>📂 Eigene Dateien</h2>
+<form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+  <div class="mb-3">
     <input type="file" name="file" class="form-control">
-    <select name="destination" class="form-select">
-      <option value="private">Privat</option>
-      <option value="shared">Gemeinsam</option>
-    </select>
-    <button type="submit" class="btn btn-primary">⬆️ Hochladen</button>
   </div>
+  <button type="submit" class="btn btn-primary">📤 Hochladen</button>
 </form>
 
-<h4>📁 Eigene Dateien</h4>
-<ul class="list-group mb-4">
+<ul class="list-group mt-3">
   {% for file in files %}
     <li class="list-group-item d-flex justify-content-between align-items-center">
       {{ file }}
-      <span>
-        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-success">⬇️</a>
-        <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-danger">🗑️</a>
-      </span>
+      <div>
+        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-outline-success">⬇️</a>
+        <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-outline-danger">🗑️</a>
+      </div>
     </li>
-  {% else %}
-    <li class="list-group-item">Keine Dateien.</li>
   {% endfor %}
 </ul>
 
-<h4>🔗 Geteilte Dateien</h4>
-<ul class="list-group">
+<h2 class="mt-5">👥 Gemeinsamer Ordner</h2>
+<form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_shared_file') }}">
+  <div class="mb-3">
+    <input type="file" name="file" class="form-control">
+  </div>
+  <button type="submit" class="btn btn-secondary">📤 Hochladen (gemeinsam)</button>
+</form>
+
+<ul class="list-group mt-3">
   {% for file in shared_files %}
     <li class="list-group-item d-flex justify-content-between align-items-center">
       {{ file }}
-      <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-success">⬇️</a>
+      <div>
+        <a href="{{ url_for('download_file', filename=file, shared='1') }}" class="btn btn-sm btn-outline-success">⬇️</a>
+        <a href="{{ url_for('delete_file', filename=file, shared='1') }}" class="btn btn-sm btn-outline-danger">🗑️</a>
+      </div>
     </li>
-  {% else %}
-    <li class="list-group-item">Keine geteilten Dateien.</li>
   {% endfor %}
 </ul>
-
 {% endblock %}
+
