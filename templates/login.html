@@ -1,16 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Logowanie{% endblock %}
+{% block title %}Anmelden{% endblock %}
 {% block content %}
-<h2>🔒 Logowanie</h2>
-<form method="post">
-    <div class="mb-3">
-        <label>Nazwa użytkownika</label>
-        <input type="text" name="username" class="form-control">
-    </div>
-    <div class="mb-3">
-        <label>Hasło</label>
-        <input type="password" name="password" class="form-control">
-    </div>
-    <button type="submit" class="btn btn-primary">Zaloguj</button>
+<h2>Anmelden</h2>
+<form method="POST" action="{{ url_for('login') }}">
+  <div class="mb-3">
+    <label for="username" class="form-label">Benutzername</label>
+    <input type="text" class="form-control" id="username" name="username" required autofocus />
+  </div>
+  <div class="mb-3">
+    <label for="password" class="form-label">Passwort</label>
+    <input type="password" class="form-control" id="password" name="password" required />
+  </div>
+  <button type="submit" class="btn btn-primary">Anmelden</button>
 </form>
+<p class="mt-3">Noch keinen Account? <a href="{{ url_for('register') }}">Registrieren</a></p>
 {% endblock %}
