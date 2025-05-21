@@ -1,75 +1,67 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 import os
 import json
-from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'tajnyklucz'
+app.secret_key = 'tajny_klucz'
 
 UPLOAD_FOLDER = 'uploads'
 SHARED_FOLDER = os.path.join(UPLOAD_FOLDER, 'shared')
-PRIVATE_FOLDER = os.path.join(UPLOAD_FOLDER, 'private')
 HISTORY_FILE = 'download_history.json'
-USERS_FILE = 'users.json'
+USER_FILE = 'users.json'
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHARED_FOLDER, exist_ok=True)
-os.makedirs(PRIVATE_FOLDER, exist_ok=True)
 
-# Ładowanie użytkowników
+# Domyślni administratorzy
+default_users = {
+    "admin1": generate_password_hash("adminpass1"),
+    "admin2": generate_password_hash("adminpass2")
+}
+
+# Inicjalizacja użytkowników
+if not os.path.exists(USER_FILE):
+    with open(USER_FILE, 'w') as f:
+        json.dump(default_users, f)
+
+# Inicjalizacja historii
+if not os.path.exists(HISTORY_FILE):
+    with open(HISTORY_FILE, 'w') as f:
+        json.dump([], f)
+
 def load_users():
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'r') as f:
-            return json.load(f)
-    return {}
+    with open(USER_FILE, 'r') as f:
+        return json.load(f)
 
-# Zapis użytkowników
 def save_users(users):
-    with open(USERS_FILE, 'w') as f:
+    with open(USER_FILE, 'w') as f:
         json.dump(users, f)
 
-# Historia pobrań
-def log_download(username, filename, location):
-    history = []
-    if os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, 'r') as f:
-            history = json.load(f)
-    history.append({
-        'username': username,
-        'filename': filename,
-        'location': location,
-        'timestamp': datetime.now().isoformat()
-    })
+def save_history(entry):
+    with open(HISTORY_FILE, 'r') as f:
+        data = json.load(f)
+    data.append(entry)
     with open(HISTORY_FILE, 'w') as f:
-        json.dump(history, f)
-
-# Wymagaj logowania
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if 'username' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated
-
-# Sprawdź, czy użytkownik to admin
-def is_admin():
-    return session.get('username') in ['admin1', 'admin2']
+        json.dump(data, f, indent=2)
 
 @app.route('/')
-@login_required
 def index():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
     username = session['username']
-    private_path = os.path.join(PRIVATE_FOLDER, username)
-    os.makedirs(private_path, exist_ok=True)
+    user_folder = os.path.join(UPLOAD_FOLDER, username)
+    os.makedirs(user_folder, exist_ok=True)
 
-    private_files = os.listdir(private_path)
+    private_files = os.listdir(user_folder)
     shared_files = os.listdir(SHARED_FOLDER)
 
-    return render_template('index.html', username=username,
-                           private_files=private_files,
-                           shared_files=shared_files,
-                           is_admin=is_admin())
+    with open(HISTORY_FILE) as f:
+        history = json.load(f)
+
+    return render_template('index.html', username=username, files=private_files, shared_files=shared_files, history=history)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -77,10 +69,11 @@ def login():
         users = load_users()
         username = request.form['username']
         password = request.form['password']
-        if username in users and users[username] == password:
+
+        if username in users and check_password_hash(users[username], password):
             session['username'] = username
             return redirect(url_for('index'))
-        flash('Błędna nazwa użytkownika lub hasło.')
+        flash('Nieprawidłowy login lub hasło')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -89,86 +82,92 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
-@login_required
 def register():
-    if not is_admin():
-        flash('Tylko administrator może dodawać użytkowników.')
+    if 'username' not in session or session['username'] not in ['admin1', 'admin2']:
+        flash("Tylko administrator może dodawać użytkowników.")
         return redirect(url_for('index'))
 
     if request.method == 'POST':
+        users = load_users()
         username = request.form['username']
         password = request.form['password']
-        users = load_users()
+
         if username in users:
-            flash('Użytkownik już istnieje.')
+            flash("Użytkownik już istnieje.")
         else:
-            users[username] = password
+            users[username] = generate_password_hash(password)
             save_users(users)
-            os.makedirs(os.path.join(PRIVATE_FOLDER, username), exist_ok=True)
-            flash('Użytkownik dodany pomyślnie.')
+            flash(f"Użytkownik {username} został dodany.")
+            user_folder = os.path.join(UPLOAD_FOLDER, username)
+            os.makedirs(user_folder, exist_ok=True)
             return redirect(url_for('index'))
     return render_template('register.html')
 
 @app.route('/upload', methods=['POST'])
-@login_required
 def upload():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
     file = request.files['file']
-    folder = request.form['folder']
-    username = session['username']
+    target = request.form.get('target')
 
-    if folder == 'private':
-        path = os.path.join(PRIVATE_FOLDER, username)
-    else:
-        path = SHARED_FOLDER
+    if file.filename == '':
+        flash("Brak pliku")
+        return redirect(url_for('index'))
 
-    os.makedirs(path, exist_ok=True)
-    file.save(os.path.join(path, file.filename))
-    flash('Plik przesłany pomyślnie.')
+    folder = SHARED_FOLDER if target == 'shared' else os.path.join(UPLOAD_FOLDER, session['username'])
+    file.save(os.path.join(folder, file.filename))
+    flash("Plik zapisany")
     return redirect(url_for('index'))
 
 @app.route('/download/<folder>/<filename>')
-@login_required
-def download(folder, filename):
-    username = session['username']
-    if folder == 'private':
-        path = os.path.join(PRIVATE_FOLDER, username)
-        if not os.path.exists(os.path.join(path, filename)):
-            flash('Brak dostępu.')
+def download_file(folder, filename):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    if folder == 'shared':
+        folder_path = SHARED_FOLDER
+    else:
+        if session['username'] != folder:
+            flash("Brak dostępu do tego folderu.")
             return redirect(url_for('index'))
-    else:
-        path = SHARED_FOLDER
+        folder_path = os.path.join(UPLOAD_FOLDER, folder)
 
-    log_download(username, filename, folder)
-    return send_from_directory(path, filename, as_attachment=True)
+    save_history({
+        "user": session['username'],
+        "file": filename,
+        "folder": folder,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
 
-@app.route('/delete/<folder>/<filename>')
-@login_required
+    return send_from_directory(folder_path, filename, as_attachment=True)
+
+@app.route('/delete/<folder>/<filename>', methods=['POST'])
 def delete_file(folder, filename):
-    username = session['username']
-    if folder == 'private':
-        path = os.path.join(PRIVATE_FOLDER, username)
-    elif folder == 'shared':
-        path = SHARED_FOLDER
-    else:
-        flash('Nieprawidłowy folder.')
-        return redirect(url_for('index'))
+    if 'username' not in session:
+        return redirect(url_for('login'))
 
-    try:
-        os.remove(os.path.join(path, filename))
-        flash('Plik usunięty.')
-    except:
-        flash('Nie udało się usunąć pliku.')
+    if folder == 'shared':
+        folder_path = SHARED_FOLDER
+    else:
+        if session['username'] != folder:
+            flash("Brak dostępu do tego folderu.")
+            return redirect(url_for('index'))
+        folder_path = os.path.join(UPLOAD_FOLDER, folder)
+
+    file_path = os.path.join(folder_path, filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        flash("Plik usunięty")
+    else:
+        flash("Plik nie istnieje")
     return redirect(url_for('index'))
 
 @app.route('/download_history')
-@login_required
 def download_history():
-    if not os.path.exists(HISTORY_FILE):
-        history = []
-    else:
-        with open(HISTORY_FILE, 'r') as f:
-            history = json.load(f)
-    return render_template('history.html', history=history)
+    if 'username' not in session:
+        return redirect(url_for('login'))
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    with open(HISTORY_FILE) as f:
+        history = json.load(f)
+    return render_template('history.html', history=history)
