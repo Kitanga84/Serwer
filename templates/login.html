@@ -1,19 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Login{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 400px;">
-  <h2 class="mb-4">Anmeldung</h2>
-  <form method="POST" action="{{ url_for('login') }}">
+<h2>Anmelden</h2>
+<form method="post">
     <div class="mb-3">
-      <label for="username" class="form-label">Benutzername</label>
-      <input type="text" class="form-control" id="username" name="username" required autofocus>
+        <label class="form-label">Benutzername</label>
+        <input type="text" name="username" class="form-control" required>
     </div>
     <div class="mb-3">
-      <label for="password" class="form-label">Passwort</label>
-      <input type="password" class="form-control" id="password" name="password" required>
+        <label class="form-label">Passwort</label>
+        <input type="password" name="password" class="form-control" required>
     </div>
-    <button type="submit" class="btn btn-primary w-100">Anmelden</button>
-  </form>
-</div>
+    <button type="submit" class="btn btn-primary">Anmelden</button>
+</form>
 {% endblock %}
