@@ -1,2 +1,4 @@
 mkdir shared
 mkdir uploads
+touch shared/.gitkeep
+touch uploads/.gitkeep
