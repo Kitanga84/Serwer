@@ -1,29 +1,50 @@
-{% extends "base.html" %}
-{% block title %}Benutzerliste{% endblock %}
-
+{% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Benutzerliste</h2>
+<div class="container mt-5">
+  <h3>Benutzerverwaltung</h3>
 
-  {% if users %}
-    <ul class="list-group">
-      {% for user in users %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ user }}
-          {% if user not in ['admin1', 'admin2'] %}
-            <form action="{{ url_for('delete_user', username=user) }}" method="POST" style="margin: 0;">
-              <button class="btn btn-sm btn-danger" onclick="return confirm('Benutzer wirklich löschen?')">Löschen</button>
-            </form>
-          {% else %}
-            <span class="badge bg-secondary">Admin</span>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Keine Benutzer gefunden.</p>
-  {% endif %}
+  <!-- Link zum Hintergrund-Upload -->
+  <div class="mb-4">
+    <a href="{{ url_for('upload_background') }}" class="btn btn-outline-secondary">
+      🖼️ Hintergrundbild ändern
+    </a>
+    <a href="{{ url_for('register') }}" class="btn btn-outline-primary ms-2">
+      ➕ Neuen Benutzer hinzufügen
+    </a>
+  </div>
 
-  <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Zurück</a>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Benutzername</th>
+          <th>Rolle</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user, data in users.items() %}
+          <tr>
+            <td>{{ user }}</td>
+            <td>
+              {% if data.is_admin %}
+                <span class="badge bg-warning text-dark">Admin</span>
+              {% else %}
+                <span class="badge bg-secondary">Benutzer</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not data.is_admin %}
+                <a href="{{ url_for('delete_user', username_to_delete=user) }}" class="btn btn-sm btn-danger"
+                   onclick="return confirm('Bist du sicher, dass du diesen Benutzer löschen willst?')">Löschen</a>
+              {% else %}
+                <span class="text-muted">Nicht löschbar</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

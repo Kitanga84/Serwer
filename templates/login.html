@@ -1,19 +1,35 @@
-{% extends "base.html" %}
-{% block title %}Login{% endblock %}
-
+{% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5" style="max-width: 400px;">
-  <h2 class="mb-4">Anmeldung</h2>
-  <form method="POST" action="{{ url_for('login') }}">
+
+<style>
+  body {
+    background: url("/static/backgrounds/{{ background }}") no-repeat center center fixed;
+    background-size: cover;
+  }
+  .login-box {
+    max-width: 400px;
+    margin: auto;
+    margin-top: 10vh;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  }
+</style>
+
+<div class="login-box">
+  <h4 class="text-center mb-4">🔐 Anmeldung</h4>
+  <form method="POST">
     <div class="mb-3">
-      <label for="username" class="form-label">Benutzername</label>
-      <input type="text" class="form-control" id="username" name="username" required autofocus>
+      <label class="form-label">Benutzername</label>
+      <input type="text" class="form-control" name="username" required>
     </div>
     <div class="mb-3">
-      <label for="password" class="form-label">Passwort</label>
-      <input type="password" class="form-control" id="password" name="password" required>
+      <label class="form-label">Passwort</label>
+      <input type="password" class="form-control" name="password" required>
     </div>
     <button type="submit" class="btn btn-primary w-100">Anmelden</button>
   </form>
 </div>
+
 {% endblock %}

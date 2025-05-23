@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Admin Einstellungen</h2>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label for="background" class="form-label">Hintergrundbild auswählen</label>
+      <select class="form-select" id="background" name="background">
+        {% for bg in backgrounds %}
+          <option value="{{ bg }}" {% if settings.background == bg %}selected{% endif %}>{{ bg }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="enable_joker" id="enable_joker"
+             {% if settings.enable_joker %}checked{% endif %}>
+      <label class="form-check-label" for="enable_joker">
+        Gadający Leniwiec (Login-Animation) anzeigen
+      </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Einstellungen speichern</button>
+  </form>
+</div>
+{% endblock %}

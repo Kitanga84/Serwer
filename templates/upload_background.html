@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+  <h3>🖼️ Hintergrundbild ändern</h3>
+  <form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Wähle ein vorhandenes Hintergrundbild:</label>
+      <select class="form-select" name="selected_background">
+        <option value="">-- Auswahl --</option>
+        {% for bg in backgrounds %}
+          <option value="{{ bg }}">{{ bg }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-success mb-3">Als Hintergrund verwenden</button>
+
+    <hr>
+    <div class="mb-3">
+      <label class="form-label">Oder lade ein neues Hintergrundbild hoch (JPG/PNG):</label>
+      <input type="file" class="form-control" name="background">
+    </div>
+    <button type="submit" class="btn btn-primary">Hochladen</button>
+  </form>
+
+  <div class="mt-4">
+    <h5>Verfügbare Hintergrundbilder:</h5>
+    <div class="row">
+      {% for bg in backgrounds %}
+        <div class="col-md-3 text-center mb-4">
+          <img src="{{ url_for('static', filename='backgrounds/' ~ bg) }}" class="img-thumbnail mb-2" style="max-height: 120px;">
+          <div>{{ bg }}</div>
+          <a href="{{ url_for('delete_background', filename=bg) }}" class="btn btn-sm btn-outline-danger"
+             onclick="return confirm('Hintergrund wirklich löschen?')">🗑️ Löschen</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
