@@ -10,5 +10,9 @@
   "Tomasz": {
     "password": "d443e3dc21ec753cc05fc531cc88c32b5f788b056cc67c7e41e6fa734a4dad30",
     "is_admin": false
+  },
+  "a": {
+    "password": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+    "is_admin": false
   }
 }

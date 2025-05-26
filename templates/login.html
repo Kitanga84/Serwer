@@ -15,7 +15,46 @@
     border-radius: 15px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   }
+  .talking-character-container {
+    position: relative;
+    width: fit-content;
+    margin: 30px auto;
+  }
+  .character-img {
+    width: 180px;
+    border-radius: 10px;
+  }
+  .speech-bubble {
+    position: absolute;
+    top: -30px;
+    left: 100px;
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 10px;
+    padding: 10px;
+    width: 160px;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+  }
+  .speech-bubble::after {
+    content: "";
+    position: absolute;
+    top: 20px;
+    left: -10px;
+    border: 10px solid transparent;
+    border-right-color: #fff;
+    border-left: 0;
+    margin-top: -10px;
+  }
 </style>
+
+{% if zeige_figur %}
+<div class="talking-character-container">
+  <img src="{{ url_for('static', filename='images/postac.jpeg') }}" alt="Sprechende Figur" class="character-img">
+  <div class="speech-bubble" id="speechBubble">Hallo! Bitte einloggen!</div>
+</div>
+{% endif %}
 
 <div class="login-box">
   <h4 class="text-center mb-4">🔐 Anmeldung</h4>
@@ -31,5 +70,22 @@
     <button type="submit" class="btn btn-primary w-100">Anmelden</button>
   </form>
 </div>
+
+{% if zeige_figur %}
+<script>
+  const texte = [
+    "Verdammt, ich sehe dein Passwort! Die ist Kurwa so kurz...",
+    "Du hast nichts anderes zu tun, Kurwa!",
+    "Kurwa, hast du bezahlt?",
+    "Kurwa, das ist keine Pommesbude!",
+    "Wir wollen deine Nacktbilder hier nicht!"
+  ];
+  let aktuell = 0;
+  setInterval(() => {
+    aktuell = (aktuell + 1) % texte.length;
+    document.getElementById("speechBubble").innerText = texte[aktuell];
+  }, 4000);
+</script>
+{% endif %}
 
 {% endblock %}

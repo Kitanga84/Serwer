@@ -96,6 +96,7 @@ def register():
 def login():
     settings = load_settings()
     background = settings.get('background', 'default.jpg')
+    zeige_figur = settings.get('zeige_figur', True)
 
     if request.method == 'POST':
         username = request.form['username']
@@ -113,13 +114,28 @@ def login():
                 flash('Falsches Passwort.', 'danger')
         else:
             flash('Benutzername existiert nicht.', 'danger')
-    return render_template('login.html', background=background)
+
+    return render_template('login.html', background=background, zeige_figur=zeige_figur)
 
 @app.route('/logout')
 def logout():
     session.clear()
     flash('Abgemeldet.', 'info')
     return redirect(url_for('login'))
+
+@app.route('/figur_toggle', methods=['POST'])
+def figur_toggle():
+    if 'username' not in session or session['username'] not in ADMINS:
+        flash('Zugriff verweigert.', 'danger')
+        return redirect(url_for('index'))
+
+    settings = load_settings()
+    current = settings.get('zeige_figur', True)
+    settings['zeige_figur'] = not current
+    save_settings(settings)
+
+    flash(f'Figur {"aktiviert" if settings["zeige_figur"] else "deaktiviert"}.', 'success')
+    return redirect(url_for('admin_users'))
 
 @app.route('/change_password', methods=['GET', 'POST'])
 def change_password():
@@ -175,7 +191,6 @@ def upload():
         owners[filename] = username
         save_data(OWNERS_FILE, owners)
 
-    # ✅ Zapis do historii (UPLOAD)
     history = load_data(HISTORY_FILE)
     history.append({
         "user": username,
@@ -200,7 +215,6 @@ def download(folder, filename):
         flash('Datei nicht gefunden.', 'danger')
         return redirect(url_for('index'))
 
-    # ✅ Zapis do historii (DOWNLOAD)
     history = load_data(HISTORY_FILE)
     history.append({
         "user": username,
@@ -310,7 +324,9 @@ def admin_users():
         flash('Zugriff verweigert.', 'danger')
         return redirect(url_for('index'))
     users = load_data(USER_FILE)
-    return render_template('admin_users.html', users=users)
+    settings = load_settings()
+    zeige_figur = settings.get('zeige_figur', True)
+    return render_template('admin_users.html', users=users, zeige_figur=zeige_figur)
 
 @app.route('/admin/delete_user/<username_to_delete>')
 def delete_user(username_to_delete):
